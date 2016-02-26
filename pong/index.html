@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+
+
+	<title>game design</title>
+
+ 	
+
+	<style>
+	
+		#y_game
+		{
+			position:relative;
+			background: #000 none repeat scroll 0 0;
+			overflow:hidden;
+			width:300px;
+		    height:500px;
+			
+		    color:white;
+			font-size:2em;
+			
+		    border:10px solid #333;
+		    margin:30px auto;
+		    box-shadow:5px 5px 10px #444;
+			transform-style: preserve-3d;
+			
+			
+		}
+	
+		.entity
+		{
+			position:absolute;
+			background:blue;
+			height:50px;
+			width:50px;
+			-webkit-transform-style: preserve-3d;
+			backface-visibility: hidden;
+			-webkit-transform: translate3d(0,0,0); 
+			transform: rotate(0deg);
+			-moz-transform:  rotate(0deg);
+			
+			
+		}
+		.hitbox
+		{
+			position:absolute;
+			border:solid 1px red;
+		}
+		.box
+		{
+			background:red;
+		}
+	</style>
+</head> 
+ 
+<body> 
+
+	<div id="y_game"></div>
+
+	
+	<script src="js/jquery-1.7.1.min.js"></script>
+	<script src="js/yoel_dom_game.js"></script>
+	
+	<script>
+	//game main
+	function main()
+	{
+		var test_world = new y_world("y_game");
+		yoel_engine_p.current_world = test_world;
+		yoel_engine_p.init();
+		
+		
+		//create example entity
+		var test_p = new ball(100,100,0,3);
+		var player = new paddle(20,100,0,3);
+		var cpu = new paddle(260,100,0,3);
+		cpu.ai=true;
+	
+	    //add it to world	
+        yoel_engine_p.current_world.add(test_p);
+        yoel_engine_p.current_world.add(player);
+        yoel_engine_p.current_world.add(cpu);
+
+	
+
+
+	
+	}
+
+
+
+
+
+
+ ////////  ball////////
+var ball = function(x,y,z,speed,mesh)
+{ 
+	this.did_init = false;
+	this.type = 'ball'; 
+
+	y_entity.call(this,x,y,z,speed,mesh); 
+	//width hight
+	this.width = 20;
+	this.height = 20;
+	//collision box
+	this.hitbox_width=20;
+	this.hitbox_height=20;
+	yw_h(this,this.width,this.height);
+	//movment speed
+	this.speedx = this.speed;
+	this.speedy = this.speed;
+		
+} 
+ 
+ ball.prototype= new y_entity(); 
+ 
+ var ball_p = ball.prototype; 
+ 
+ ball_p.init = function()
+{
+
+ if(this.did_init){return;}//if did init escape 
+
+ }//end init 
+
+ ball_p.update = function()
+{
+	 this.init();
+	 this.move();
+	 y_entity_p.update.call(this); 
+
+ }//end update 
+ 
+ball_p.move = function()
+{
+	var hit = y_entity_p.colide.call(this,"paddle");
+
+	//if hit paddle 
+	if(hit)
+	{
+		this.bounce();	
+	}
+	
+	//if outside of game area
+	if(this.x<-10 || this.x>320  || this.y>500)
+	{
+		this.x = 100;
+		this.y = 200;
+		
+	}
+	//if hit top or bottom
+	if(this.y>450  )//if bottom
+	{
+		this.y =450;
+		this.bounce(1);
+		
+		
+	}
+	if(this.y<30)//if top
+	{
+		this.y =30;
+		this.bounce(1);	
+	}
+	//move by speed vector
+	y_entity_p.move_by.call(this,this.speedx,-this.speedy);
+}//end move
+//////// end ball////////
+
+  
+ball_p.bounce = function(wall)
+{
+	//if its less then a 100 its probably hitting the left paddle
+	if(this.x<100){ this.speedx = this.speed;}else{ this.speedx = -this.speed;}
+	//move ball up or down randomly 	
+	if( y_random(0,10)>5)
+	{
+		this.speedy*=-1;
+	}
+
+	
+	//add a more random bounce to walls
+	if(wall==1){this.speedx*=-1;}
+	
+}//end bounce
+ 
+ ////////  paddle////////
+var paddle = function(x,y,z,speed,mesh)
+{ 
+	this.did_init = false;
+	this.type = 'paddle'; 
+	y_entity.call(this,x,y,z,speed,mesh); 
+	this.ai=false;
+	this.width=10;
+	this.height=40;
+	yw_h(this,this.width,this.height)
+} 
+ 
+ paddle.prototype= new y_entity(); 
+ 
+ var paddle_p = paddle.prototype; 
+ 
+ paddle_p.init = function()
+{
+
+ if(this.did_init){return;}//if did init escape 
+
+ }//end init 
+
+ paddle_p.update = function()
+{
+	 this.init();
+	 this.controle();
+	 y_entity_p.update.call(this); 
+
+ }//end update
+ 
+ paddle_p.controle = function()
+{
+	if(this.ai)
+	{
+		this.cpu_controle();
+	}
+	else
+	{
+		this.humen_controle();
+	}
+}//end controle
+
+paddle_p.cpu_controle = function()
+{
+	//get ball
+	ball = y_entity_p.get_by_type.call(this,"ball")
+	//move twoerds ball
+	if(ball[0].y > this.y){y_entity_p.move_by.call(this,0,this.speed);}
+	if(ball[0].y < this.y){y_entity_p.move_by.call(this,0,-this.speed);}
+	
+}//end cpu_controle
+paddle_p.humen_controle = function()
+{
+	//follow mouce
+	this.y= y_input2_p.mouse_cor.y-30;
+	//set pos of dom element of entity
+	y_entity_p.move_by.call(this,0,0);
+}//end humen_controle
+ //////// end paddle////////
+
+
+	//main
+	main();
+	</script>
+
+</body> 
+</html>
